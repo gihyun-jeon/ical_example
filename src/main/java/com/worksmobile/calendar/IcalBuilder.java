@@ -5,19 +5,17 @@ import biweekly.ICalendar;
 import biweekly.component.VEvent;
 import biweekly.property.*;
 import com.google.common.base.Strings;
-import org.junit.Test;
 import org.springframework.util.CollectionUtils;
 
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-public class IcalBuildUtil {
-	public static String makeSampleScheduleIcal(String summary, ZoneId zoneId, ZonedDateTime startDateTime, Duration duration, String masterEmail, List<String> attendeeEmailList) {
+public class IcalBuilder {
+	public String makeSampleScheduleIcal(String summaryString, ZoneId zoneId, ZonedDateTime startDateTime, Duration duration, String masterEmail, List<String> attendeeEmailList) {
 		String ICAL_PRODUCT_ID = "-//YourCompany Inc//Some more info for Calendar 70.9054//EN"; //ICAL 을 생성자 정보
 
 		ICalendar ical = new ICalendar();
@@ -30,10 +28,11 @@ public class IcalBuildUtil {
 
 
 		// 제목
-		if (Strings.isNullOrEmpty(summary)) {
-			event.setSummary("Sample & summaryValue ");
+		Summary summary;
+		if (Strings.isNullOrEmpty(summaryString)) {
+			summary = event.setSummary("Sample & summaryValue ");
 		} else {
-			event.setSummary(summary);
+			summary = event.setSummary(summaryString);
 		}
 
 		// 시작시간
@@ -62,12 +61,9 @@ public class IcalBuildUtil {
 		event.setLastModified(new LastModified(new Date()));
 		ical.addEvent(event);
 
-		return Biweekly.write(ical).go();
+		Biweekly.WriterChainText write = Biweekly.write(ical);
+		return write.go();
 	}
 
-	@Test
-	public void test() {
-		String ical = makeSampleScheduleIcal("일정제목", ZoneId.of("Asia/Seoul"), ZonedDateTime.now().truncatedTo(ChronoUnit.MINUTES), Duration.ofHours(1), null, null);
-		System.out.println(ical);
-	}
+
 }
