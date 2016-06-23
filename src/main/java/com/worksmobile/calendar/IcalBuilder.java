@@ -1,21 +1,25 @@
 package com.worksmobile.calendar;
 
-import biweekly.Biweekly;
+import biweekly.ICalVersion;
 import biweekly.ICalendar;
 import biweekly.component.VEvent;
+import biweekly.io.text.ICalWriter;
 import biweekly.property.*;
 import com.google.common.base.Strings;
 import org.springframework.util.CollectionUtils;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.UUID;
 
 public class IcalBuilder {
-	public String makeSampleScheduleIcal(String summaryString, ZoneId zoneId, ZonedDateTime startDateTime, Duration duration, String masterEmail, List<String> attendeeEmailList) {
+	public String makeSampleScheduleIcal(String summaryString, ZoneId zoneId, ZonedDateTime startDateTime, Duration duration, String masterEmail, List<String> attendeeEmailList) throws IOException {
 		String ICAL_PRODUCT_ID = "-//YourCompany Inc//Some more info for Calendar 70.9054//EN"; //ICAL 을 생성자 정보
 
 		ICalendar ical = new ICalendar();
@@ -61,8 +65,13 @@ public class IcalBuilder {
 		event.setLastModified(new LastModified(new Date()));
 		ical.addEvent(event);
 
-		Biweekly.WriterChainText write = Biweekly.write(ical);
-		return write.go();
+		StringWriter sw = new StringWriter();
+		ICalWriter icalWriter = new ICalWriter(sw, ICalVersion.V2_0);
+
+		TimeZone tz = TimeZone.getTimeZone("Asia/Seoul");
+		icalWriter.getTimezoneInfo().setDefaultTimeZone(tz);
+		icalWriter.write(ical);
+		return sw.toString();
 	}
 
 
