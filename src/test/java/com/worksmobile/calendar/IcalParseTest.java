@@ -7,8 +7,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class IcalUtilTest {
-	private IcalUtil sut = new IcalUtil();
+public class IcalParseTest {
+	private IcalParse sut = new IcalParse();
 
 	@Test
 	public void test_parse() {
@@ -16,12 +16,44 @@ public class IcalUtilTest {
 		ZonedDateTime from = ZonedDateTime.of(LocalDateTime.parse("2016-04-01 00:00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
 		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-06-30 23:59:59", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
 
-		sut.parserIcal(ical_일반일정, null, null, zoneId);
+
+		sut.parserIcal(ical_시간_비반복_일정, null, null, zoneId);
+
+		sut.parserIcal(ical_종일일정_반복일정, from, until, zoneId);
 		sut.parserIcal(ical_반복일정, from, until, zoneId);
 		sut.parserIcal(ical_반복_예외가_n_개인_복잡한_일정, from, until, zoneId);
 	}
 
-	String ical_일반일정 = "BEGIN:VCALENDAR\n" +
+	String ical_종일일정_반복일정 = "BEGIN:VCALENDAR\n" +
+			"PRODID:Works Mobile Calendar\n" +
+			"VERSION:2.0\n" +
+			"BEGIN:VEVENT\n" +
+			"DTSTAMP:20151230T020745Z\n" +
+			"UID:20151230T020745Z-44624@somekey\n" +
+			"SUMMARY:종일일정_반복일정\n" +
+			"DTSTART:20160104\n" +
+			"DTEND:20160104\n" +
+			"LOCATION:그린팩토리\n" +
+			"CLASS:PUBLIC\n" +
+			"DESCRIPTION:회의합니다.\\n감사합니다.\n" +
+			"PRIORITY:0\n" +
+			"RRULE:FREQ=WEEKLY;UNTIL=20161231T150000Z;INTERVAL=1;BYDAY=MO\n" +
+			"ORGANIZER;X-WORKSMOBILE-WID=123;CN=\"주최자\":mailto:some@navercorp.com\n" +
+			"ATTENDEE;X-WORKSMOBILE-WID=222;CN=\"참석자1\";PARTSTAT=NEEDS-ACTION;ROLE=REQ-PARTICIPANT:somsom@navercorp.com\n" +
+			"ATTENDEE;X-WORKSMOBILE-WID=223;CN=\"참석자2\";PARTSTAT=NEEDS-ACTION;ROLE=REQ-PARTICIPANT:somsom2@navercorp.com\n" +
+			"CREATED:20151230T020745Z\n" +
+			"BEGIN:VALARM\n" +
+			"TRIGGER:-PT10M\n" +
+			"ACTION:DISPLAY\n" +
+			"END:VALARM\n" +
+			"BEGIN:VALARM\n" +
+			"TRIGGER:-PT10M\n" +
+			"ACTION:EMAIL\n" +
+			"END:VALARM\n" +
+			"END:VEVENT\n" +
+			"END:VCALENDAR\n";
+
+	String ical_시간_비반복_일정 = "BEGIN:VCALENDAR\n" +
 			"PRODID:Works Mobile Calendar\n" +
 			"VERSION:2.0\n" +
 			"BEGIN:VEVENT\n" +

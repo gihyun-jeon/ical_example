@@ -11,14 +11,13 @@ import com.google.common.collect.Maps;
 import com.google.ical.compat.javautil.DateIterator;
 import org.springframework.util.CollectionUtils;
 
+import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
-public class IcalUtil {
-	private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+public class IcalParse {
 	private static final int MAX_REPEAT_COUNT = 1000;
 
 	/**
@@ -46,15 +45,19 @@ public class IcalUtil {
 		}
 
 		for (Map.Entry<String, List<VEvent>> entry : veventMap.entrySet()) {
-			System.out.println("");
-			System.out.println(entry.getKey() + " UID 를 가진 VEVENT 를 parsing 합니다.");
-
+			System.out.println("\nUID" + entry.getKey() + " VEVENT List 를 parsing 합니다.");
 			List<SimpleScheduleModel> simpleScheduleModelList = parseSingleUidVeventList(from, until, zoneId, entry.getValue());
-			for (SimpleScheduleModel simpleScheduleModel : simpleScheduleModelList) {
-				System.out.println(simpleScheduleModel.toString());
-			}
+			printResult(simpleScheduleModelList);
 		}
 	}
+
+
+	private void printResult(List<SimpleScheduleModel> simpleScheduleModelList) {
+		for (SimpleScheduleModel simpleScheduleModel : simpleScheduleModelList) {
+			System.out.println(simpleScheduleModel.toString());
+		}
+	}
+
 
 	private List<SimpleScheduleModel> parseSingleUidVeventList(ZonedDateTime from, ZonedDateTime until, ZoneId zoneId, List<VEvent> vEventList) {
 		if (null == zoneId || CollectionUtils.isEmpty(vEventList)) {
@@ -63,19 +66,20 @@ public class IcalUtil {
 
 		validateVeventList(vEventList);
 
-		boolean isRepeatVeventList = false;
+		boolean hasRecurrenceRule = false;
 		for (VEvent vEvent : vEventList) {
 			if (null != vEvent.getRecurrenceRule()) {
-				isRepeatVeventList = true;
+				hasRecurrenceRule = true;
 			}
 		}
 
-		if (!isRepeatVeventList) { // 일반일정
-			return Lists.newArrayList(parseNotRepeatVevent(vEventList, zoneId));
+		if (hasRecurrenceRule) {
+			// 반복일정
+			return parseRepeatVEvent(vEventList, from, until, zoneId);
+		} else {
+			// 비반복 일정들
+			return parseNotRepeatVeventList(vEventList, zoneId);
 		}
-
-		// 반복일정
-		return parseRepeatVEvent(vEventList, from, until, zoneId);
 	}
 
 
@@ -89,15 +93,21 @@ public class IcalUtil {
 	}
 
 
-	private SimpleScheduleModel parseNotRepeatVevent(List<VEvent> vEventList, ZoneId zoneId) {
-		if (vEventList.size() != 1) {
-			throw new IllegalArgumentException("UID 로 필터링한 비반복 일정인데, 전달된 VEVENT LIST 가 1개가 아닙니다.");
+	/**
+	 * @param vEventList 비반복일정 1개 일 수도 있고, 반복예외일정만 n 개일 수도 있음.
+	 * @param zoneId     client 가 Viewing 하기 원하는 timezone
+	 * @return
+	 */
+	private List<SimpleScheduleModel> parseNotRepeatVeventList(List<VEvent> vEventList, ZoneId zoneId) {
+		List<SimpleScheduleModel> simpleScheduleModelList = Lists.newArrayList();
+		for (VEvent vEvent : vEventList) {
+			simpleScheduleModelList.add(SimpleScheduleModel.of(vEvent, zoneId));
 		}
-		return SimpleScheduleModel.of(vEventList.get(0), zoneId);
+		return simpleScheduleModelList;
 	}
 
 
-	private List<SimpleScheduleModel> parseRepeatVEvent(List<VEvent> vEventList, ZonedDateTime from, ZonedDateTime until, ZoneId zoneId) {
+	private List<SimpleScheduleModel> parseRepeatVEvent(List<VEvent> 반복_모일정과_반복예외_일정리스트, ZonedDateTime from, ZonedDateTime until, ZoneId zoneId) {
 		List<SimpleScheduleModel> simpleScheduleModelList = Lists.newArrayList();
 		if (null == from || null == until) {
 			throw new IllegalArgumentException("반복일정을 parsing 하기 위해서는, 범위가 필요합니다.");
@@ -106,7 +116,7 @@ public class IcalUtil {
 		// 반복 예외날짜 추출
 		// Server 에 따라, EXDATE 없이 반복예외를 처리 할 수도 있으니, 주의
 		List<ICalDate> exceptionDatesList = Lists.newArrayList();
-		for (VEvent vEvent : vEventList) {
+		for (VEvent vEvent : 반복_모일정과_반복예외_일정리스트) {
 			List<ExceptionDates> exceptionDates = vEvent.getExceptionDates();
 			if (CollectionUtils.isEmpty(exceptionDates)) {
 				continue;
@@ -118,16 +128,15 @@ public class IcalUtil {
 			}
 		}
 
-		for (VEvent vEvent : vEventList) {
+		for (VEvent vEvent : 반복_모일정과_반복예외_일정리스트) {
 			RecurrenceRule recurrenceRule = vEvent.getRecurrenceRule();
 			if (null == recurrenceRule) { //반복일정인데, RRULE 이 없으면 반복예외일정입니다.
 				buildSingleScheduleModelForViewFromExVEvent(from, until, zoneId, simpleScheduleModelList, vEvent);
 				continue;
 			}
 
-			ICalDate st = vEvent.getDateStart().getValue();
-			ICalDate en = vEvent.getDateEnd().getValue();
-			long eventDuration = en.toInstant().toEpochMilli() - st.toInstant().toEpochMilli();
+			// 반복 모일정이 기간을 저장
+			Duration vEventDuration = Duration.between(vEvent.getDateStart().getValue().toInstant(), vEvent.getDateEnd().getValue().toInstant());
 
 			// TODO 예쁘게 jump 로직 구현
 			ICalDate recurrenceStart = vEvent.getDateStart().getValue();
@@ -147,6 +156,7 @@ public class IcalUtil {
 					break;
 				}
 
+				// + RRID 가 있으면, 너도 예외다.
 				boolean isExDate = false;
 				for (ICalDate exICalDate : exceptionDatesList) {
 					ZonedDateTime exDateTime = ZonedDateTime.ofInstant(exICalDate.toInstant(), zoneId);
@@ -161,7 +171,7 @@ public class IcalUtil {
 				}
 
 				ZonedDateTime startDateTime = ZonedDateTime.ofInstant(iDateTime.toInstant(), zoneId);
-				ZonedDateTime endDateTime = startDateTime.plusSeconds(eventDuration);
+				ZonedDateTime endDateTime = startDateTime.plusSeconds(vEventDuration.getSeconds());
 				simpleScheduleModelList.add(SimpleScheduleModel.of(vEvent, startDateTime, endDateTime));
 			}
 
