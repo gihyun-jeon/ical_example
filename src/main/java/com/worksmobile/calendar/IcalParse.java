@@ -131,7 +131,8 @@ public class IcalParse {
 
 		for (VEvent vEvent : 반복_모일정과_반복예외_일정리스트) {
 			RecurrenceRule recurrenceRule = vEvent.getRecurrenceRule();
-			if (null == recurrenceRule) { //반복일정인데, RRULE 이 없으면 반복예외일정입니다.
+			if (null == recurrenceRule) {
+				//반복일정인데, RRULE 이 없으면 반복예외일정입니다.
 				buildSingleScheduleModelForViewFromExVEvent(from, until, zoneId, simpleScheduleModelList, vEvent);
 				continue;
 			}
@@ -141,7 +142,7 @@ public class IcalParse {
 
 			ICalDate recurrenceStart = vEvent.getDateStart().getValue();
 			DateIterator it = recurrenceRule.getDateIterator(recurrenceStart);
-			it.advanceTo(new Date(from.toEpochSecond() - 36000));
+			it.advanceTo(new Date(from.toEpochSecond() - 36000)); // 하루 정도 버퍼를 두고, DateIterator 를 앞으로 당긴다.
 			int repeatCount = 0;
 			while (it.hasNext()) {
 				if (repeatCount++ > MAX_REPEAT_COUNT) {
@@ -169,6 +170,7 @@ public class IcalParse {
 					continue;
 				}
 
+				// n번째 반복일정으로 만들어, 결과물에 추가.
 				ZonedDateTime startDateTime = ZonedDateTime.ofInstant(iDateTime.toInstant(), zoneId);
 				ZonedDateTime endDateTime = startDateTime.plusSeconds(vEventDuration.getSeconds());
 				simpleScheduleModelList.add(SimpleScheduleModel.of(vEvent, startDateTime, endDateTime));
