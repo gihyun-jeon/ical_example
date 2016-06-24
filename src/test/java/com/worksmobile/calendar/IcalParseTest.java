@@ -11,16 +11,34 @@ public class IcalParseTest {
 	private IcalParse sut = new IcalParse();
 
 	@Test
-	public void test_parse() {
+	public void test_parse_시간_비반복일정() {
 		ZoneId zoneId = ZoneId.of("Asia/Seoul");
 		ZonedDateTime from = ZonedDateTime.of(LocalDateTime.parse("2016-04-01 00:00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
 		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-06-30 23:59:59", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
-
-
 		sut.parserIcal(ical_시간_비반복_일정, null, null, zoneId);
+	}
 
+	@Test
+	public void test_parse_시간_종일일정_반복일정() {
+		ZoneId zoneId = ZoneId.of("Asia/Seoul");
+		ZonedDateTime from = ZonedDateTime.of(LocalDateTime.parse("2016-04-01 00:00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
+		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-06-30 23:59:59", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
 		sut.parserIcal(ical_종일일정_반복일정, from, until, zoneId);
+	}
+
+	@Test
+	public void test_parse_반복일정() {
+		ZoneId zoneId = ZoneId.of("Asia/Seoul");
+		ZonedDateTime from = ZonedDateTime.of(LocalDateTime.parse("2016-04-01 00:00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
+		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-06-30 23:59:59", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
 		sut.parserIcal(ical_반복일정, from, until, zoneId);
+	}
+
+	@Test
+	public void test_parse_반복_예외가_n_개인_복잡한_일정() {
+		ZoneId zoneId = ZoneId.of("Asia/Seoul");
+		ZonedDateTime from = ZonedDateTime.of(LocalDateTime.parse("2016-04-01 00:00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
+		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-06-30 23:59:59", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
 		sut.parserIcal(ical_반복_예외가_n_개인_복잡한_일정, from, until, zoneId);
 	}
 
@@ -30,7 +48,7 @@ public class IcalParseTest {
 			"BEGIN:VEVENT\n" +
 			"DTSTAMP:20151230T020745Z\n" +
 			"UID:20151230T020745Z-44624@somekey\n" +
-			"SUMMARY:종일일정_반복일정\n" +
+			"SUMMARY:ical_종일일정_반복일정\n" +
 			"DTSTART:20160104\n" +
 			"DTEND:20160104\n" +
 			"LOCATION:그린팩토리\n" +
@@ -59,7 +77,7 @@ public class IcalParseTest {
 			"BEGIN:VEVENT\n" +
 			"DTSTAMP:20151230T020745Z\n" +
 			"UID:20151230T020745Z-44624@somekey\n" +
-			"SUMMARY:경영지원개발실\n" +
+			"SUMMARY:ical_시간_비반복_일정\n" +
 			"DTSTART;TZID=Asia/Seoul:20160104T103000\n" +
 			"DTEND;TZID=Asia/Seoul:20160104T120000\n" +
 			"LOCATION:그린팩토리\n" +
@@ -76,7 +94,7 @@ public class IcalParseTest {
 			"BEGIN:VEVENT\n" +
 			"DTSTAMP:20151230T020745Z\n" +
 			"UID:20151230T020745Z-44624@somekey\n" +
-			"SUMMARY:경영지원개발실\n" +
+			"SUMMARY:ical_반복일정\n" +
 			"DTSTART;TZID=Asia/Seoul:20160104T103000\n" +
 			"DTEND;TZID=Asia/Seoul:20160104T120000\n" +
 			"LOCATION:그린팩토리\n" +
