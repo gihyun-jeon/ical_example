@@ -14,6 +14,7 @@ import org.springframework.util.CollectionUtils;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -22,16 +23,16 @@ public class IcalParse {
 
 	/**
 	 * @param icalString parsing 대상 iCal
-	 * @param from       parsing 범위 시작일
-	 * @param until      parsing 범위 종료일
-	 * @param zoneId     parsing 기준 zoneId
+	 * @param viewRangeFrom       parsing 범위 시작일
+	 * @param viewRangeUntil      parsing 범위 종료일
+	 * @param clientViewZoneId     parsing 기준 clientViewZoneId
 	 */
-	public void parserIcal(String icalString, ZonedDateTime from, ZonedDateTime until, ZoneId zoneId) {
+	public void parserIcal(String icalString, ZonedDateTime viewRangeFrom, ZonedDateTime viewRangeUntil, ZoneId clientViewZoneId) {
 		List<ICalendar> icalList = Biweekly.parse(icalString).all();
 
 		// 하나의 iCalendar 안에, n개의 VEVENT 가 있을 수 있습니다.
 		// 반복모일정 + 자일정 일 수도 있고, 전혀 관계없는 VEVENT 일 수도 있습니다.
-		// 먼저 UID 로 GROUPING 합니다.
+		// 먼저 UID 로 GROUPING
 		Map<String, List<VEvent>> veventMap = Maps.newHashMap();
 		for (ICalendar iCalendar : icalList) {
 			for (VEvent ve : iCalendar.getEvents()) {
@@ -46,7 +47,7 @@ public class IcalParse {
 
 		for (Map.Entry<String, List<VEvent>> entry : veventMap.entrySet()) {
 			System.out.println("\nUID" + entry.getKey() + " VEVENT List 를 parsing 합니다.");
-			List<SimpleScheduleModel> simpleScheduleModelList = parseSingleUidVeventList(from, until, zoneId, entry.getValue());
+			List<SimpleScheduleModel> simpleScheduleModelList = parseSingleUidVeventList(viewRangeFrom, viewRangeUntil, clientViewZoneId, entry.getValue());
 			printResult(simpleScheduleModelList);
 		}
 	}
@@ -138,10 +139,9 @@ public class IcalParse {
 			// 반복 모일정이 기간을 저장
 			Duration vEventDuration = Duration.between(vEvent.getDateStart().getValue().toInstant(), vEvent.getDateEnd().getValue().toInstant());
 
-			// TODO 예쁘게 jump 로직 구현
 			ICalDate recurrenceStart = vEvent.getDateStart().getValue();
 			DateIterator it = recurrenceRule.getDateIterator(recurrenceStart);
-			//it.advanceTo(new Date(from.toEpochSecond()));
+			it.advanceTo(new Date(from.toEpochSecond() - 36000));
 			int repeatCount = 0;
 			while (it.hasNext()) {
 				if (repeatCount++ > MAX_REPEAT_COUNT) {
@@ -166,7 +166,7 @@ public class IcalParse {
 				}
 
 				if (isExDate) {
-					System.out.println("반복예외 날짜임으로 pass iDateTime=" + iDateTime.toString());
+					//System.out.println("반복예외 날짜임으로 pass iDateTime=" + iDateTime.toString());
 					continue;
 				}
 

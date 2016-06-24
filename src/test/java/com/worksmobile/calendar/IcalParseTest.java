@@ -8,38 +8,34 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class IcalParseTest {
+	private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+	private static final ZoneId CLIENT_VIEWING_ZONE_ID = ZoneId.of("Asia/Seoul");
 	private IcalParse sut = new IcalParse();
 
 	@Test
 	public void test_parse_시간_비반복일정() {
-		ZoneId zoneId = ZoneId.of("Asia/Seoul");
-		ZonedDateTime from = ZonedDateTime.of(LocalDateTime.parse("2016-04-01 00:00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
-		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-06-30 23:59:59", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
-		sut.parserIcal(ical_시간_비반복_일정, null, null, zoneId);
+		sut.parserIcal(ical_시간_비반복_일정, null, null, CLIENT_VIEWING_ZONE_ID);
 	}
 
 	@Test
 	public void test_parse_시간_종일일정_반복일정() {
-		ZoneId zoneId = ZoneId.of("Asia/Seoul");
-		ZonedDateTime from = ZonedDateTime.of(LocalDateTime.parse("2016-04-01 00:00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
-		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-06-30 23:59:59", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
-		sut.parserIcal(ical_종일일정_반복일정, from, until, zoneId);
+		ZonedDateTime from = ZonedDateTime.of(LocalDateTime.parse("2016-04-01 00:00:00", DATE_TIME_FORMATTER), CLIENT_VIEWING_ZONE_ID);
+		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-06-30 23:59:59", DATE_TIME_FORMATTER), CLIENT_VIEWING_ZONE_ID);
+		sut.parserIcal(ical_종일일정_반복일정, from, until, CLIENT_VIEWING_ZONE_ID);
 	}
 
 	@Test
 	public void test_parse_반복일정() {
-		ZoneId zoneId = ZoneId.of("Asia/Seoul");
-		ZonedDateTime from = ZonedDateTime.of(LocalDateTime.parse("2016-04-01 00:00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
-		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-06-30 23:59:59", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
-		sut.parserIcal(ical_반복일정, from, until, zoneId);
+		ZonedDateTime from = ZonedDateTime.of(LocalDateTime.parse("2016-04-01 00:00:00", DATE_TIME_FORMATTER), CLIENT_VIEWING_ZONE_ID);
+		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-06-30 23:59:59", DATE_TIME_FORMATTER), CLIENT_VIEWING_ZONE_ID);
+		sut.parserIcal(ical_반복일정, from, until, CLIENT_VIEWING_ZONE_ID);
 	}
 
 	@Test
 	public void test_parse_반복_예외가_n_개인_복잡한_일정() {
-		ZoneId zoneId = ZoneId.of("Asia/Seoul");
-		ZonedDateTime from = ZonedDateTime.of(LocalDateTime.parse("2016-04-01 00:00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
-		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-06-30 23:59:59", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
-		sut.parserIcal(ical_반복_예외가_n_개인_복잡한_일정, from, until, zoneId);
+		ZonedDateTime from = ZonedDateTime.of(LocalDateTime.parse("2016-04-01 00:00:00", DATE_TIME_FORMATTER), CLIENT_VIEWING_ZONE_ID);
+		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-06-30 23:59:59", DATE_TIME_FORMATTER), CLIENT_VIEWING_ZONE_ID);
+		sut.parserIcal(ical_반복_예외가_n_개인_복잡한_일정, from, until, CLIENT_VIEWING_ZONE_ID);
 	}
 
 	String ical_종일일정_반복일정 = "BEGIN:VCALENDAR\n" +
