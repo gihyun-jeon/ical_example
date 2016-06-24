@@ -156,7 +156,6 @@ public class IcalParse {
 					break;
 				}
 
-				// + RRID 가 있으면, 너도 예외다.
 				boolean isExDate = false;
 				for (ICalDate exICalDate : exceptionDatesList) {
 					ZonedDateTime exDateTime = ZonedDateTime.ofInstant(exICalDate.toInstant(), zoneId);
