@@ -47,7 +47,10 @@ public class IcalUtil {
 
 		for (Map.Entry<String, List<VEvent>> entry : veventMap.entrySet()) {
 			System.out.println(entry.getKey() + " UID 를 가진 VEVENT 를 parsing 합니다.");
-			parseSingleUidVeventList(from, until, zoneId, entry.getValue());
+			List<SingleScheduleModelForView> acutal = parseSingleUidVeventList(from, until, zoneId, entry.getValue());
+			for (SingleScheduleModelForView singleScheduleModelForView : acutal) {
+				System.out.println(singleScheduleModelForView.toString());
+			}
 		}
 	}
 
@@ -107,6 +110,9 @@ public class IcalUtil {
 				continue;
 			}
 
+			ICalDate st = vEvent.getDateStart().getValue();
+			ICalDate en = vEvent.getDateEnd().getValue();
+			long duration = en.toInstant().toEpochMilli() - st.toInstant().toEpochMilli();
 
 			// TODO 예쁘게 jump 로직 구현
 			ICalDate recurrenceStart = vEvent.getDateStart().getValue();
@@ -118,43 +124,31 @@ public class IcalUtil {
 					break;
 				}
 
-				ZonedDateTime currentDateTime = ZonedDateTime.ofInstant(it.next().toInstant(), zoneId);
-				if (currentDateTime.isBefore(from)) {
+				ZonedDateTime iDateTime = ZonedDateTime.ofInstant(it.next().toInstant(), zoneId);
+				if (iDateTime.isBefore(from)) {
 					continue;
 				}
-				if (currentDateTime.isAfter(until)) {
+				if (iDateTime.isAfter(until)) {
 					break;
 				}
 
 				boolean isExDate = false;
 				for (ICalDate exICalDate : exceptionDatesList) {
 					ZonedDateTime exDateTime = ZonedDateTime.ofInstant(exICalDate.toInstant(), zoneId);
-					if (exDateTime.toLocalDate().equals(currentDateTime.toLocalDate())) {
+					if (exDateTime.toLocalDate().equals(iDateTime.toLocalDate())) {
 						isExDate = true;
 					}
 				}
 				if (isExDate) {
-					System.out.println("반복예외 날짜임으로 pass currentDateTime=" + currentDateTime.toString());
+					System.out.println("반복예외 날짜임으로 pass iDateTime=" + iDateTime.toString());
 					continue;
 				}
 
-				ICalDate st = vEvent.getDateStart().getValue();
-				ICalDate en = vEvent.getDateStart().getValue();
-				long duration = en.toInstant().toEpochMilli() - st.toInstant().toEpochMilli();
-
-				ZonedDateTime startDateTime = currentDateTime;
+				ZonedDateTime startDateTime = ZonedDateTime.ofInstant(iDateTime.toInstant(), zoneId);
 				ZonedDateTime endDateTime = startDateTime.plusSeconds(duration);
-
-				Map<String, String> repeatMap = Maps.newHashMap();
-				repeatMap.put("name", vEvent.getSummary().getValue());
-				repeatMap.put("startDate", startDateTime.format(DATE_TIME_FORMATTER).toString());
-				repeatMap.put("endDate", endDateTime.format(DATE_TIME_FORMATTER).toString());
+				singleScheduleModelForViewList.add(new SingleScheduleModelForView(vEvent.getSummary().getValue(), startDateTime, endDateTime));
 			}
 
-		}
-
-		for (VEvent vEvent : vEventList) {
-			System.out.println("일정제목=" + vEvent.getSummary().getValue());
 		}
 
 		return singleScheduleModelForViewList;
@@ -192,5 +186,14 @@ class SingleScheduleModelForView {
 		this.summary = summary;
 		this.start = start;
 		this.end = end;
+	}
+
+	@Override
+	public String toString() {
+		return "SingleScheduleModelForView{" +
+				"summary='" + summary + '\'' +
+				", start=" + start +
+				", end=" + end +
+				'}';
 	}
 }
