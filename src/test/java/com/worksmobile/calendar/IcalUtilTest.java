@@ -14,7 +14,7 @@ public class IcalUtilTest {
 	public void test_parse() {
 		ZoneId zoneId = ZoneId.of("Asia/Seoul");
 		ZonedDateTime from = ZonedDateTime.of(LocalDateTime.parse("2016-04-01 00:00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
-		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-04-30 23:59:59", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
+		ZonedDateTime until = ZonedDateTime.of(LocalDateTime.parse("2016-06-30 23:59:59", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), zoneId);
 
 		sut.parserIcal(ical_일반일정, null, null, zoneId);
 		sut.parserIcal(ical_반복일정, from, until, zoneId);

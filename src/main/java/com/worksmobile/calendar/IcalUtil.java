@@ -46,25 +46,22 @@ public class IcalUtil {
 		}
 
 		for (Map.Entry<String, List<VEvent>> entry : veventMap.entrySet()) {
+			System.out.println("");
 			System.out.println(entry.getKey() + " UID 를 가진 VEVENT 를 parsing 합니다.");
-			List<SingleScheduleModelForView> acutal = parseSingleUidVeventList(from, until, zoneId, entry.getValue());
-			for (SingleScheduleModelForView singleScheduleModelForView : acutal) {
-				System.out.println(singleScheduleModelForView.toString());
+
+			List<SimpleScheduleModel> simpleScheduleModelList = parseSingleUidVeventList(from, until, zoneId, entry.getValue());
+			for (SimpleScheduleModel simpleScheduleModel : simpleScheduleModelList) {
+				System.out.println(simpleScheduleModel.toString());
 			}
 		}
 	}
 
-	private List<SingleScheduleModelForView> parseSingleUidVeventList(ZonedDateTime from, ZonedDateTime until, ZoneId zoneId, List<VEvent> vEventList) {
+	private List<SimpleScheduleModel> parseSingleUidVeventList(ZonedDateTime from, ZonedDateTime until, ZoneId zoneId, List<VEvent> vEventList) {
 		if (null == zoneId || CollectionUtils.isEmpty(vEventList)) {
 			throw new IllegalArgumentException("zoneId 와 vEventList 는 필수값 입니다.");
 		}
 
-		String uid = vEventList.get(0).getUid().getValue();
-		for (VEvent vEvent : vEventList) {
-			if (!uid.equals(vEvent.getUid().getValue())) {
-				throw new IllegalArgumentException("vEventList's UID is not same!");
-			}
-		}
+		validateVeventList(vEventList);
 
 		boolean isRepeatVeventList = false;
 		for (VEvent vEvent : vEventList) {
@@ -73,17 +70,35 @@ public class IcalUtil {
 			}
 		}
 
-		if (!isRepeatVeventList) {
-			// 일반일정
-			return parseNotRepeatVevent(zoneId, vEventList);
-		} else {
-			// 반복일정
-			return parseRepeatVEvent(from, until, zoneId, vEventList);
+		if (!isRepeatVeventList) { // 일반일정
+			return Lists.newArrayList(parseNotRepeatVevent(vEventList, zoneId));
+		}
+
+		// 반복일정
+		return parseRepeatVEvent(vEventList, from, until, zoneId);
+	}
+
+
+	private void validateVeventList(List<VEvent> vEventList) {
+		String uid = vEventList.get(0).getUid().getValue();
+		for (VEvent vEvent : vEventList) {
+			if (!uid.equals(vEvent.getUid().getValue())) {
+				throw new IllegalArgumentException("vEventList's UID is not same!");
+			}
 		}
 	}
 
-	private List<SingleScheduleModelForView> parseRepeatVEvent(ZonedDateTime from, ZonedDateTime until, ZoneId zoneId, List<VEvent> vEventList) {
-		List<SingleScheduleModelForView> singleScheduleModelForViewList = Lists.newArrayList();
+
+	private SimpleScheduleModel parseNotRepeatVevent(List<VEvent> vEventList, ZoneId zoneId) {
+		if (vEventList.size() != 1) {
+			throw new IllegalArgumentException("UID 로 필터링한 비반복 일정인데, 전달된 VEVENT LIST 가 1개가 아닙니다.");
+		}
+		return SimpleScheduleModel.of(vEventList.get(0), zoneId);
+	}
+
+
+	private List<SimpleScheduleModel> parseRepeatVEvent(List<VEvent> vEventList, ZonedDateTime from, ZonedDateTime until, ZoneId zoneId) {
+		List<SimpleScheduleModel> simpleScheduleModelList = Lists.newArrayList();
 		if (null == from || null == until) {
 			throw new IllegalArgumentException("반복일정을 parsing 하기 위해서는, 범위가 필요합니다.");
 		}
@@ -106,13 +121,13 @@ public class IcalUtil {
 		for (VEvent vEvent : vEventList) {
 			RecurrenceRule recurrenceRule = vEvent.getRecurrenceRule();
 			if (null == recurrenceRule) { //반복일정인데, RRULE 이 없으면 반복예외일정입니다.
-				parseExVevent(from, until, zoneId, singleScheduleModelForViewList, vEvent);
+				buildSingleScheduleModelForViewFromExVEvent(from, until, zoneId, simpleScheduleModelList, vEvent);
 				continue;
 			}
 
 			ICalDate st = vEvent.getDateStart().getValue();
 			ICalDate en = vEvent.getDateEnd().getValue();
-			long duration = en.toInstant().toEpochMilli() - st.toInstant().toEpochMilli();
+			long eventDuration = en.toInstant().toEpochMilli() - st.toInstant().toEpochMilli();
 
 			// TODO 예쁘게 jump 로직 구현
 			ICalDate recurrenceStart = vEvent.getDateStart().getValue();
@@ -139,61 +154,33 @@ public class IcalUtil {
 						isExDate = true;
 					}
 				}
+
 				if (isExDate) {
 					System.out.println("반복예외 날짜임으로 pass iDateTime=" + iDateTime.toString());
 					continue;
 				}
 
 				ZonedDateTime startDateTime = ZonedDateTime.ofInstant(iDateTime.toInstant(), zoneId);
-				ZonedDateTime endDateTime = startDateTime.plusSeconds(duration);
-				singleScheduleModelForViewList.add(new SingleScheduleModelForView(vEvent.getSummary().getValue(), startDateTime, endDateTime));
+				ZonedDateTime endDateTime = startDateTime.plusSeconds(eventDuration);
+				simpleScheduleModelList.add(SimpleScheduleModel.of(vEvent, startDateTime, endDateTime));
 			}
 
 		}
 
-		return singleScheduleModelForViewList;
+		return simpleScheduleModelList;
 	}
 
-	private List<SingleScheduleModelForView> parseNotRepeatVevent(ZoneId zoneId, List<VEvent> vEventList) {
-		if (vEventList.size() != 1) {
-			throw new IllegalArgumentException("UID 로 필터링한 비반복 일정인데, 전달된 VENVET LIST 가 1개가 아닙니다.");
-		}
-		VEvent vEvent = vEventList.get(0);
-		ZonedDateTime startDateTime = ZonedDateTime.ofInstant(vEvent.getDateStart().getValue().toInstant(), zoneId);
-		ZonedDateTime endDateTime = ZonedDateTime.ofInstant(vEvent.getDateEnd().getValue().toInstant(), zoneId);
-		return Lists.newArrayList(new SingleScheduleModelForView(vEvent.getSummary().getValue(), startDateTime, endDateTime));
-	}
-
-	private void parseExVevent(ZonedDateTime from, ZonedDateTime until, ZoneId zoneId, List<SingleScheduleModelForView> singleScheduleModelForViewList, VEvent vEvent) {
+	private void buildSingleScheduleModelForViewFromExVEvent(ZonedDateTime from, ZonedDateTime until, ZoneId zoneId, List<SimpleScheduleModel> simpleScheduleModelList, VEvent vEvent) {
 		ZonedDateTime startDateTime = ZonedDateTime.ofInstant(vEvent.getDateStart().getValue().toInstant(), zoneId);
 		ZonedDateTime endDateTime = ZonedDateTime.ofInstant(vEvent.getDateEnd().getValue().toInstant(), zoneId);
 		// 반복예외일정이, parsing 범위안에 있는지 검사.
 		if (startDateTime.isBefore(from) || endDateTime.isAfter(until)) {
 			return;
 		}
-		singleScheduleModelForViewList.add(new SingleScheduleModelForView(vEvent.getSummary().getValue(), startDateTime, endDateTime));
+
+		simpleScheduleModelList.add(SimpleScheduleModel.of(vEvent, zoneId));
 		return;
 	}
 
 }
 
-class SingleScheduleModelForView {
-	String summary;
-	ZonedDateTime start;
-	ZonedDateTime end;
-
-	public SingleScheduleModelForView(String summary, ZonedDateTime start, ZonedDateTime end) {
-		this.summary = summary;
-		this.start = start;
-		this.end = end;
-	}
-
-	@Override
-	public String toString() {
-		return "SingleScheduleModelForView{" +
-				"summary='" + summary + '\'' +
-				", start=" + start +
-				", end=" + end +
-				'}';
-	}
-}
