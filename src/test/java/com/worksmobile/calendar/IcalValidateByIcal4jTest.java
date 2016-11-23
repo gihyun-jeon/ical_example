@@ -1,21 +1,22 @@
 package com.worksmobile.calendar;
 
-import biweekly.Biweekly;
-import biweekly.ICalVersion;
-import biweekly.ICalendar;
-import biweekly.ValidationWarnings;
+import net.fortuna.ical4j.data.CalendarBuilder;
+import net.fortuna.ical4j.data.ParserException;
+import net.fortuna.ical4j.model.Calendar;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
-public class IcalValidateTest {
+public class IcalValidateByIcal4jTest {
 
 	@Test
-	public void test() throws IOException {
-		ICalendar ical = Biweekly.parse(icalString).first();
-
-		ValidationWarnings warnings = ical.validate(ICalVersion.V2_0);
-		System.out.println("warnings=" + warnings);
+	public void test() throws IOException, ParserException {
+		CalendarBuilder builder = new CalendarBuilder();
+		InputStream in = new ByteArrayInputStream(icalString.getBytes());
+		Calendar calendar = builder.build(in);
+		System.out.println(calendar);
 	}
 
 	String icalString = "BEGIN:VCALENDAR\n" +
@@ -27,8 +28,8 @@ public class IcalValidateTest {
 			"BEGIN:STANDARD\n" +
 			"DTSTART:19700101T000000\n" +
 			"TZNAME:GMT+:00\n" +
-			"TZOFFSETFROM:+0000\n" +
-			"TZOFFSETTO:+0000\n" +
+			"TZOFFSETFROM:+00\n" +
+			"TZOFFSETTO:+00\n" +
 			"END:STANDARD\n" +
 			"END:VTIMEZONE\n" +
 			"BEGIN:VEVENT\n" +
@@ -46,6 +47,4 @@ public class IcalValidateTest {
 			"DTSTAMP:20161122T160000\n" +
 			"END:VEVENT\n" +
 			"END:VCALENDAR";
-
-
 }
